@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Dhiblawe WaterFlow</title>
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <a href="dashboard.html" class="logo">
+  <span class="logo-icon">💧</span>
+  <span>Dhiblawe</span> WaterFlow
+</a>
+      <nav>
+        <a href="dashboard.html" class="active">
+          <span class="nav-icon">📊</span>
+          Dashboard
+        </a>
+        <a href="trips.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">🚛</span>
+          Trip Entry
+        </a>
+        <a href="clients.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">👥</span>
+          Clients
+        </a>
+        <a href="plates.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">🚗</span>
+          Plate Numbers
+        </a>
+        <a href="payments.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">💰</span>
+          Payments
+        </a>
+        <a href="deposits.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">🏦</span>
+          Deposits
+        </a>
+        <a href="reports.html">
+          <span class="nav-icon">📋</span>
+          Reports
+        </a>
+        <a href="users.html" data-role="super_admin">
+          <span class="nav-icon">🔐</span>
+          Users
+        </a>
+        <a href="settings.html" data-role="super_admin">
+          <span class="nav-icon">⚙️</span>
+          Settings
+        </a>
+        <a href="security.html" data-role="super_admin">
+          <span class="nav-icon">🛡️</span>
+          Security
+        </a>
+        <a href="backup.html" data-role="super_admin">
+          <span class="nav-icon">💾</span>
+          Backup
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar">A</div>
+          <div>
+            <div class="user-name">Admin</div>
+            <div class="user-role">Super Admin</div>
+          </div>
+        </div>
+        <a href="#" id="logoutBtn" class="logout-link">Sign Out</a>
+      </div>
+    </aside>
+    <main class="main-content">
+      <div class="page-header"><h1>Dashboard</h1><p>Today's overview</p></div>
+
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card"><div class="label">Total Trips Today</div><div class="value" id="statTrips">—</div></div>
+        <div class="stat-card"><div class="label">Paid Trips</div><div class="value success" id="statPaid">—</div></div>
+        <div class="stat-card"><div class="label">Company Fleet</div><div class="value primary" id="statFleet">—</div></div>
+        <div class="stat-card"><div class="label">Free Trips</div><div class="value" id="statFree">—</div></div>
+        <div class="stat-card"><div class="label">Outstanding Balance</div><div class="value danger" id="statOutstanding">—</div></div>
+        <div class="stat-card"><div class="label">Total Clients</div><div class="value" id="statClients">—</div></div>
+        <div class="stat-card"><div class="label">Total Plate Numbers</div><div class="value" id="statPlates">—</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Today's Trips</div>
+        <div id="todayTrips"><div class="empty-state"><p>No trips today</p></div></div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { API } from './assets/js/api.js';
+    import { Auth } from './assets/js/auth.js';
+    if (!Auth.isAuthenticated()) location.href = 'index.html';
+    Auth.updateNav();
+    document.getElementById('logoutBtn').onclick = (e) => { e.preventDefault(); Auth.logout(); };
+
+    async function load() {
+      try {
+        const d = await API.get('/api/reports/dashboard');
+        document.getElementById('statTrips').textContent = d.totalTripsToday;
+        document.getElementById('statPaid').textContent = d.paidTrips;
+        document.getElementById('statFleet').textContent = d.companyFleetTrips;
+        document.getElementById('statFree').textContent = d.freeTrips;
+        document.getElementById('statOutstanding').textContent = 'KSh ' + Number(d.outstandingBalance).toLocaleString();
+        document.getElementById('statClients').textContent = d.totalClients;
+        document.getElementById('statPlates').textContent = d.totalPlateNumbers;
+
+        const trips = await API.get('/api/reports/today');
+        const el = document.getElementById('todayTrips');
+        if (trips.length === 0) {
+          el.innerHTML = '<div class="empty-state"><p>No trips recorded today</p></div>';
+        } else {
+          el.innerHTML = `<div class="table-wrapper"><table>
+            <tr><th>Time</th><th>Client</th><th>Plate</th><th>Amount</th><th>Status</th></tr>
+            ${trips.map(t => `<tr>
+              <td>${esc(t.trip_time)}</td>
+              <td>${esc(t.client_name)}</td>
+              <td>${esc(t.plate_number)}</td>
+              <td>KSh ${Number(t.amount).toLocaleString()}</td>
+              <td><span class="badge badge-${t.payment_status.replace(/\s+/g, '-')}">${esc(t.payment_status)}</span></td>
+            </tr>`).join('')}
+          </table></div>`;
+        }
+      } catch { API.toast('Failed to load dashboard', 'error'); }
+    }
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+    load();
+    setInterval(load, 30000);
+  </script>
+</body>
+</html>

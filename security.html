@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Security — Dhiblawe WaterFlow</title>
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <a href="dashboard.html" class="logo">
+  <span class="logo-icon">💧</span>
+  <span>Dhiblawe</span> WaterFlow
+</a>
+      <nav>
+        <a href="dashboard.html">
+          <span class="nav-icon">📊</span>
+          Dashboard
+        </a>
+        <a href="trips.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">🚛</span>
+          Trip Entry
+        </a>
+        <a href="clients.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">👥</span>
+          Clients
+        </a>
+        <a href="plates.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">🚗</span>
+          Plate Numbers
+        </a>
+        <a href="payments.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">💰</span>
+          Payments
+        </a>
+        <a href="deposits.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">🏦</span>
+          Deposits
+        </a>
+        <a href="reports.html">
+          <span class="nav-icon">📋</span>
+          Reports
+        </a>
+        <a href="users.html" data-role="super_admin">
+          <span class="nav-icon">🔐</span>
+          Users
+        </a>
+        <a href="settings.html" data-role="super_admin">
+          <span class="nav-icon">⚙️</span>
+          Settings
+        </a>
+        <a href="security.html" class="active" data-role="super_admin">
+          <span class="nav-icon">🛡️</span>
+          Security
+        </a>
+        <a href="backup.html" data-role="super_admin">
+          <span class="nav-icon">💾</span>
+          Backup
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar">A</div>
+          <div>
+            <div class="user-name">Admin</div>
+            <div class="user-role">Super Admin</div>
+          </div>
+        </div>
+        <a href="#" id="logoutBtn" class="logout-link">Sign Out</a>
+      </div>
+    </aside>
+    <main class="main-content">
+      <div class="page-header"><h1>Security</h1><p>PIN protection for sensitive operations</p></div>
+      <div class="card">
+        <p style="font-size:.85rem;color:var(--gray-500);margin-bottom:1rem">PIN is required for edit/delete/backup/restore operations. PIN must be 4-8 digits.</p>
+        <form id="pinForm">
+          <div id="pinSetup">
+            <div class="form-group"><label>New PIN</label><input type="password" class="form-control" id="pin" pattern="\d{4,8}" inputmode="numeric" maxlength="8" placeholder="4-8 digits" autocomplete="new-password"></div>
+            <div class="form-group"><label>Confirm PIN</label><input type="password" class="form-control" id="pinConfirm" pattern="\d{4,8}" inputmode="numeric" maxlength="8" placeholder="Repeat PIN" autocomplete="new-password"></div>
+          </div>
+          <div id="pinChange" class="hidden">
+            <div class="form-group"><label>Current PIN</label><input type="password" class="form-control" id="currentPin" pattern="\d{4,8}" inputmode="numeric" maxlength="8" placeholder="Current PIN" autocomplete="current-password"></div>
+            <div class="form-group"><label>New PIN</label><input type="password" class="form-control" id="newPin" pattern="\d{4,8}" inputmode="numeric" maxlength="8" placeholder="4-8 digits" autocomplete="new-password"></div>
+            <div class="form-group"><label>Confirm New PIN</label><input type="password" class="form-control" id="newPinConfirm" pattern="\d{4,8}" inputmode="numeric" maxlength="8" placeholder="Repeat" autocomplete="new-password"></div>
+          </div>
+          <p class="error" id="pinError"></p>
+          <p class="success" id="pinSuccess" style="display:none"></p>
+          <button type="submit" class="btn btn-primary" id="pinSubmitBtn">Set PIN</button>
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { API } from './assets/js/api.js';
+    import { Auth } from './assets/js/auth.js';
+    if (!Auth.isAuthenticated() || !Auth.hasRole('super_admin')) location.href = 'index.html';
+    Auth.updateNav();
+    document.getElementById('logoutBtn').onclick = (e) => { e.preventDefault(); Auth.logout(); };
+
+    let hasPin = false;
+    async function check() {
+      try {
+        const s = await API.get('/api/settings');
+        hasPin = s._pinSet;
+        toggle();
+      } catch {}
+    }
+    function toggle() {
+      document.getElementById('pinSetup').classList.toggle('hidden', hasPin);
+      document.getElementById('pinChange').classList.toggle('hidden', !hasPin);
+      document.getElementById('pinSubmitBtn').textContent = hasPin ? 'Change PIN' : 'Set PIN';
+    }
+
+    document.getElementById('pinForm').onsubmit = async (e) => {
+      e.preventDefault();
+      document.getElementById('pinError').textContent = '';
+      document.getElementById('pinSuccess').style.display = 'none';
+      if (!hasPin) {
+        const p = document.getElementById('pin').value;
+        const c = document.getElementById('pinConfirm').value;
+        if (p !== c) { document.getElementById('pinError').textContent = 'PINs do not match'; return; }
+        if (!/^\d{4,8}$/.test(p)) { document.getElementById('pinError').textContent = 'PIN must be 4-8 digits'; return; }
+        try { await API.post('/api/security/setup', { pin: p }); hasPin = true; toggle(); document.getElementById('pinSuccess').style.display = 'block'; document.getElementById('pinSuccess').textContent = 'PIN set!'; document.getElementById('pin').value = ''; document.getElementById('pinConfirm').value = ''; } catch (err) { document.getElementById('pinError').textContent = err.error; }
+      } else {
+        const cp = document.getElementById('currentPin').value;
+        const np = document.getElementById('newPin').value;
+        const nc = document.getElementById('newPinConfirm').value;
+        if (np !== nc) { document.getElementById('pinError').textContent = 'New PINs do not match'; return; }
+        if (!/^\d{4,8}$/.test(np)) { document.getElementById('pinError').textContent = 'PIN must be 4-8 digits'; return; }
+        try { await API.post('/api/security/change', { currentPin: cp, newPin: np }); document.getElementById('pinSuccess').style.display = 'block'; document.getElementById('pinSuccess').textContent = 'PIN changed!'; document.getElementById('currentPin').value = ''; document.getElementById('newPin').value = ''; document.getElementById('newPinConfirm').value = ''; } catch (err) { document.getElementById('pinError').textContent = err.error; }
+      }
+    };
+    check();
+  </script>
+</body>
+</html>

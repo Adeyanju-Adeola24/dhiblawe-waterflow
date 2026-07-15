@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings — Dhiblawe WaterFlow</title>
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <a href="dashboard.html" class="logo">
+  <span class="logo-icon">💧</span>
+  <span>Dhiblawe</span> WaterFlow
+</a>
+      <nav>
+        <a href="dashboard.html">
+          <span class="nav-icon">📊</span>
+          Dashboard
+        </a>
+        <a href="trips.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">🚛</span>
+          Trip Entry
+        </a>
+        <a href="clients.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">👥</span>
+          Clients
+        </a>
+        <a href="plates.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">🚗</span>
+          Plate Numbers
+        </a>
+        <a href="payments.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">💰</span>
+          Payments
+        </a>
+        <a href="deposits.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">🏦</span>
+          Deposits
+        </a>
+        <a href="reports.html">
+          <span class="nav-icon">📋</span>
+          Reports
+        </a>
+        <a href="users.html" data-role="super_admin">
+          <span class="nav-icon">🔐</span>
+          Users
+        </a>
+        <a href="settings.html" class="active" data-role="super_admin">
+          <span class="nav-icon">⚙️</span>
+          Settings
+        </a>
+        <a href="security.html" data-role="super_admin">
+          <span class="nav-icon">🛡️</span>
+          Security
+        </a>
+        <a href="backup.html" data-role="super_admin">
+          <span class="nav-icon">💾</span>
+          Backup
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar">A</div>
+          <div>
+            <div class="user-name">Admin</div>
+            <div class="user-role">Super Admin</div>
+          </div>
+        </div>
+        <a href="#" id="logoutBtn" class="logout-link">Sign Out</a>
+      </div>
+    </aside>
+    <main class="main-content">
+      <div class="page-header"><h1>Settings</h1><p>Company information and system configuration</p></div>
+      <div class="card">
+        <form id="settingsForm">
+          <div class="form-group"><label>Company Name</label><input type="text" class="form-control" id="company_name" maxlength="200"></div>
+          <div class="form-group"><label>Company Logo (file path)</label><input type="text" class="form-control" id="company_logo" placeholder="/path/to/logo.png"></div>
+          <div class="form-group"><label>Company Phone</label><input type="text" class="form-control" id="company_phone" maxlength="50"></div>
+          <div class="form-group"><label>Invoice Prefix</label><input type="text" class="form-control" id="invoice_prefix" maxlength="20"></div>
+          <hr style="border:none;border-top:1px solid var(--gray-200);margin:1rem 0">
+          <div class="form-group"><label>Report Title</label><input type="text" class="form-control" id="report_title" maxlength="200"></div>
+          <div class="form-group"><label>Report Footer</label><input type="text" class="form-control" id="report_footer" maxlength="300"></div>
+          <div class="form-group"><label>Footer Message</label><input type="text" class="form-control" id="report_footer_message" maxlength="300"></div>
+          <p class="error" id="settingsError"></p>
+          <p class="success" id="settingsSuccess" style="display:none"></p>
+          <button type="submit" class="btn btn-primary">Save Settings</button>
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { API } from './assets/js/api.js';
+    import { Auth } from './assets/js/auth.js';
+    if (!Auth.isAuthenticated() || !Auth.hasRole('super_admin')) location.href = 'index.html';
+    Auth.updateNav();
+    document.getElementById('logoutBtn').onclick = (e) => { e.preventDefault(); Auth.logout(); };
+
+    async function load() {
+      try {
+        const s = await API.get('/api/settings');
+        ['company_name','company_logo','company_phone','invoice_prefix','report_title','report_footer','report_footer_message'].forEach(k => {
+          const el = document.getElementById(k);
+          if (el) el.value = s[k] || '';
+        });
+      } catch { API.toast('Failed to load settings', 'error'); }
+    }
+
+    document.getElementById('settingsForm').onsubmit = async (e) => {
+      e.preventDefault();
+      document.getElementById('settingsSuccess').style.display = 'none';
+      document.getElementById('settingsError').textContent = '';
+      const body = {};
+      ['company_name','company_logo','company_phone','invoice_prefix','report_title','report_footer','report_footer_message'].forEach(k => {
+        body[k] = document.getElementById(k).value.trim() || null;
+      });
+      try {
+        await API.put('/api/settings', body);
+        document.getElementById('settingsSuccess').style.display = 'block';
+        document.getElementById('settingsSuccess').textContent = 'Settings saved!';
+        API.toast('Settings updated', 'success');
+      } catch (err) { document.getElementById('settingsError').textContent = err.error || 'Failed'; }
+    };
+    load();
+  </script>
+</body>
+</html>

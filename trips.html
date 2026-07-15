@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trip Entry — Dhiblawe WaterFlow</title>
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <a href="dashboard.html" class="logo">
+  <span class="logo-icon">💧</span>
+  <span>Dhiblawe</span> WaterFlow
+</a>
+      <nav>
+        <a href="dashboard.html">
+          <span class="nav-icon">📊</span>
+          Dashboard
+        </a>
+        <a href="trips.html" class="active" data-role="super_admin,data_entry">
+          <span class="nav-icon">🚛</span>
+          Trip Entry
+        </a>
+        <a href="clients.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">👥</span>
+          Clients
+        </a>
+        <a href="plates.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">🚗</span>
+          Plate Numbers
+        </a>
+        <a href="payments.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">💰</span>
+          Payments
+        </a>
+        <a href="deposits.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">🏦</span>
+          Deposits
+        </a>
+        <a href="reports.html">
+          <span class="nav-icon">📋</span>
+          Reports
+        </a>
+        <a href="users.html" data-role="super_admin">
+          <span class="nav-icon">🔐</span>
+          Users
+        </a>
+        <a href="settings.html" data-role="super_admin">
+          <span class="nav-icon">⚙️</span>
+          Settings
+        </a>
+        <a href="security.html" data-role="super_admin">
+          <span class="nav-icon">🛡️</span>
+          Security
+        </a>
+        <a href="backup.html" data-role="super_admin">
+          <span class="nav-icon">💾</span>
+          Backup
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar">A</div>
+          <div>
+            <div class="user-name">Admin</div>
+            <div class="user-role">Super Admin</div>
+          </div>
+        </div>
+        <a href="#" id="logoutBtn" class="logout-link">Sign Out</a>
+      </div>
+    </aside>
+    <main class="main-content">
+      <div class="page-header">
+        <div class="flex-between flex-wrap gap-1">
+          <div><h1>Trip Entry</h1><p>Record daily water delivery trips</p></div>
+          <button class="btn btn-primary" id="newTripBtn">+ New Trip</button>
+        </div>
+      </div>
+
+      <div class="filters">
+        <div class="form-group">
+          <label>Client</label>
+          <select class="form-control" id="filterClient"><option value="">All</option></select>
+        </div>
+        <div class="form-group">
+          <label>Plate</label>
+          <select class="form-control" id="filterPlate"><option value="">All</option></select>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select class="form-control" id="filterStatus"><option value="">All</option><option>Outstanding</option><option>Paid</option><option>Unpaid</option><option>Company Fleet</option><option>Free</option></select>
+        </div>
+        <div class="form-group">
+          <label>From</label>
+          <input type="date" class="form-control" id="filterFrom">
+        </div>
+        <div class="form-group">
+          <label>To</label>
+          <input type="date" class="form-control" id="filterTo">
+        </div>
+        <button class="btn btn-outline" id="filterBtn" style="align-self:end">Filter</button>
+      </div>
+
+      <div class="card">
+        <div class="table-wrapper" id="tripsTable"><div class="empty-state"><p>Loading...</p></div></div>
+      </div>
+    </main>
+  </div>
+
+  <div id="tripModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h2 id="modalTitle">New Trip</h2>
+      <p class="modal-desc">Enter trip details below.</p>
+      <form id="tripForm">
+        <input type="hidden" id="tripId">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Date</label>
+            <input type="date" class="form-control" id="tripDate" required>
+          </div>
+          <div class="form-group">
+            <label>Time</label>
+            <input type="time" class="form-control" id="tripTime" required>
+          </div>
+        </div>
+        <div class="form-group"><label>Client</label><select class="form-control" id="tripClient" required><option value="">Select client</option></select></div>
+        <div class="form-group"><label>Plate Number</label><select class="form-control" id="tripPlate" required><option value="">Select plate</option></select></div>
+        <div class="form-group"><label>Item</label><input type="text" class="form-control" id="tripItem" value="Clean Water"></div>
+        <div class="form-group"><label>Amount (KSh)</label><input type="number" class="form-control" id="tripAmount" step="0.01" min="0" required placeholder="0.00"></div>
+        <div class="form-group"><label>Status</label><select class="form-control" id="tripStatus"><option value="Outstanding">Outstanding</option><option value="Paid">Paid</option><option value="Unpaid">Unpaid</option><option value="Company Fleet">Company Fleet</option><option value="Free">Free</option></select></div>
+        <div class="form-group"><label>Note</label><input type="text" class="form-control" id="tripNote" placeholder="Optional"></div>
+        <p class="error" id="tripError"></p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" id="tripCancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="tripSubmit">Save Trip</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="pinModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h2>Enter PIN</h2>
+      <p class="modal-desc">PIN required for this action.</p>
+      <div class="form-group"><input type="password" class="form-control" id="modalPin" pattern="\d{4,8}" inputmode="numeric" maxlength="8" placeholder="Enter PIN" autocomplete="off"></div>
+      <p class="error" id="modalPinError"></p>
+      <div class="modal-actions">
+        <button class="btn btn-outline" id="modalPinCancel">Cancel</button>
+        <button class="btn btn-primary" id="modalPinConfirm">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { API } from './assets/js/api.js';
+    import { Auth } from './assets/js/auth.js';
+    if (!Auth.isAuthenticated()) location.href = 'index.html';
+    Auth.updateNav();
+    document.getElementById('logoutBtn').onclick = (e) => { e.preventDefault(); Auth.logout(); };
+
+    const isSuperAdmin = Auth.hasRole('super_admin');
+    const canEdit = Auth.hasRole('super_admin', 'data_entry');
+    if (!canEdit) document.getElementById('newTripBtn').style.display = 'none';
+
+    let pendingDeleteId = null;
+
+    async function loadSelects() {
+      const clients = await API.get('/api/clients');
+      const plates = await API.get('/api/plates');
+      for (const id of ['filterClient', 'tripClient']) {
+        const sel = document.getElementById(id);
+        sel.innerHTML = `<option value="">${id === 'filterClient' ? 'All' : 'Select client'}</option>` +
+          clients.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+      }
+      for (const id of ['filterPlate', 'tripPlate']) {
+        const sel = document.getElementById(id);
+        sel.innerHTML = `<option value="">${id === 'filterPlate' ? 'All' : 'Select plate'}</option>` +
+          plates.map(p => `<option value="${p.id}">${esc(p.plate)}</option>`).join('');
+      }
+    }
+
+    function showPinModal(cb) {
+      document.getElementById('modalPin').value = '';
+      document.getElementById('modalPinError').textContent = '';
+      document.getElementById('pinModal').classList.remove('hidden');
+      document.getElementById('modalPin').focus();
+      document.getElementById('modalPinConfirm').onclick = async () => {
+        const pin = document.getElementById('modalPin').value;
+        if (!pin) { document.getElementById('modalPinError').textContent = 'PIN required'; return; }
+        try {
+          await API.post('/api/security/verify', { pin });
+          document.getElementById('pinModal').classList.add('hidden');
+          cb();
+        } catch (err) { document.getElementById('modalPinError').textContent = err.error || 'Invalid PIN'; }
+      };
+      document.getElementById('modalPinCancel').onclick = () => { document.getElementById('pinModal').classList.add('hidden'); };
+    }
+
+    function showModal(trip) {
+      const modal = document.getElementById('tripModal');
+      const title = document.getElementById('modalTitle');
+      document.getElementById('tripError').textContent = '';
+      document.getElementById('tripId').value = '';
+      document.getElementById('tripForm').reset();
+
+      const today = new Date().toISOString().split('T')[0];
+      const now = new Date().toTimeString().slice(0, 5);
+
+      if (trip) {
+        title.textContent = 'Edit Trip';
+        document.getElementById('tripId').value = trip.id;
+        document.getElementById('tripDate').value = trip.trip_date;
+        document.getElementById('tripTime').value = trip.trip_time;
+        document.getElementById('tripClient').value = trip.client_id;
+        document.getElementById('tripPlate').value = trip.plate_id;
+        document.getElementById('tripItem').value = trip.item;
+        document.getElementById('tripAmount').value = trip.amount;
+        document.getElementById('tripStatus').value = trip.payment_status;
+        document.getElementById('tripNote').value = trip.note || '';
+        document.getElementById('tripSubmit').textContent = 'Update Trip';
+      } else {
+        title.textContent = 'New Trip';
+        document.getElementById('tripDate').value = today;
+        document.getElementById('tripTime').value = now;
+        document.getElementById('tripSubmit').textContent = 'Save Trip';
+      }
+      modal.classList.remove('hidden');
+    }
+
+    document.getElementById('tripCancel').onclick = () => document.getElementById('tripModal').classList.add('hidden');
+
+    document.getElementById('tripForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('tripId').value;
+      const body = {
+        client_id: parseInt(document.getElementById('tripClient').value),
+        plate_id: parseInt(document.getElementById('tripPlate').value),
+        trip_date: document.getElementById('tripDate').value,
+        trip_time: document.getElementById('tripTime').value,
+        item: document.getElementById('tripItem').value || 'Clean Water',
+        amount: parseFloat(document.getElementById('tripAmount').value),
+        payment_status: document.getElementById('tripStatus').value,
+        note: document.getElementById('tripNote').value || null,
+      };
+      try {
+        if (id) {
+          if (isSuperAdmin) await API.put(`/api/trips/${id}`, body);
+          else { API.toast('Only admins can edit trips', 'error'); return; }
+          API.toast('Trip updated', 'success');
+        } else {
+          await API.post('/api/trips', body);
+          API.toast('Trip saved', 'success');
+          API.playSound();
+        }
+        document.getElementById('tripModal').classList.add('hidden');
+        loadTrips();
+      } catch (err) { document.getElementById('tripError').textContent = err.error || 'Failed'; }
+    };
+
+    document.getElementById('filterBtn').onclick = loadTrips;
+
+    async function loadTrips() {
+      const params = new URLSearchParams();
+      const c = document.getElementById('filterClient').value;
+      const p = document.getElementById('filterPlate').value;
+      const s = document.getElementById('filterStatus').value;
+      const f = document.getElementById('filterFrom').value;
+      const t = document.getElementById('filterTo').value;
+      if (c) params.set('client_id', c);
+      if (p) params.set('plate_id', p);
+      if (s) params.set('status', s);
+      if (f) params.set('date_from', f);
+      if (t) params.set('date_to', t);
+
+      try {
+        const trips = await API.get('/api/trips?' + params.toString());
+        const el = document.getElementById('tripsTable');
+        if (trips.length === 0) {
+          el.innerHTML = '<div class="empty-state"><p>No trips found</p></div>';
+        } else {
+          el.innerHTML = `<table>
+            <tr><th>#</th><th>Date</th><th>Time</th><th>Client</th><th>Plate</th><th>Invoice</th><th>Trip</th><th>Amount</th><th>Status</th><th>Deposit Used</th><th></th></tr>
+            ${trips.map(t => `<tr>
+              <td>${t.id}</td>
+              <td>${esc(t.trip_date)}</td>
+              <td>${esc(t.trip_time)}</td>
+              <td>${esc(t.client_name)}</td>
+              <td>${esc(t.plate_number)}</td>
+              <td>${esc(t.invoice_number)}</td>
+              <td>${t.trip_number}</td>
+              <td>KSh ${Number(t.amount).toLocaleString()}</td>
+              <td><span class="badge badge-${t.payment_status.replace(/\s+/g, '-')}">${esc(t.payment_status)}</span>${t.deposit_used > 0 ? `<br><span style="font-size:.65rem;color:var(--gray-400)">(KSh ${t.deposit_used} deposit)</span>` : ''}</td>
+              <td>${canEdit ? `<div class="actions">
+                <button class="btn btn-outline btn-sm edit-btn" data-id="${t.id}">Edit</button>
+                ${isSuperAdmin ? `<button class="btn btn-danger btn-sm delete-btn" data-id="${t.id}">Del</button>` : ''}
+              </div>` : ''}</td>
+            </tr>`).join('')}
+          </table>`;
+          el.querySelectorAll('.edit-btn').forEach(b => b.onclick = async () => {
+            if (!isSuperAdmin) { API.toast('Only admins can edit trips', 'error'); return; }
+            const trip = await API.get('/api/trips/' + b.dataset.id);
+            showModal(trip);
+          });
+          el.querySelectorAll('.delete-btn').forEach(b => b.onclick = () => {
+            pendingDeleteId = b.dataset.id;
+            showPinModal(async () => {
+              try {
+                await API.delete('/api/trips/' + pendingDeleteId);
+                API.toast('Trip deleted', 'success');
+                loadTrips();
+              } catch (err) { API.toast(err.error || 'Delete failed', 'error'); }
+            });
+          });
+        }
+      } catch { document.getElementById('tripsTable').innerHTML = '<div class="empty-state"><p>Failed to load</p></div>'; }
+    }
+
+    document.getElementById('newTripBtn').onclick = () => showModal(null);
+    document.getElementById('tripDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('tripTime').value = new Date().toTimeString().slice(0, 5);
+
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+    await loadSelects();
+    loadTrips();
+  </script>
+</body>
+</html>

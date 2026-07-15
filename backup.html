@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Backup — Dhiblawe WaterFlow</title>
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <a href="dashboard.html" class="logo">
+  <span class="logo-icon">💧</span>
+  <span>Dhiblawe</span> WaterFlow
+</a>
+      <nav>
+        <a href="dashboard.html">
+          <span class="nav-icon">📊</span>
+          Dashboard
+        </a>
+        <a href="trips.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">🚛</span>
+          Trip Entry
+        </a>
+        <a href="clients.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">👥</span>
+          Clients
+        </a>
+        <a href="plates.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">🚗</span>
+          Plate Numbers
+        </a>
+        <a href="payments.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">💰</span>
+          Payments
+        </a>
+        <a href="deposits.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">🏦</span>
+          Deposits
+        </a>
+        <a href="reports.html">
+          <span class="nav-icon">📋</span>
+          Reports
+        </a>
+        <a href="users.html" data-role="super_admin">
+          <span class="nav-icon">🔐</span>
+          Users
+        </a>
+        <a href="settings.html" data-role="super_admin">
+          <span class="nav-icon">⚙️</span>
+          Settings
+        </a>
+        <a href="security.html" data-role="super_admin">
+          <span class="nav-icon">🛡️</span>
+          Security
+        </a>
+        <a href="backup.html" class="active" data-role="super_admin">
+          <span class="nav-icon">💾</span>
+          Backup
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar">A</div>
+          <div>
+            <div class="user-name">Admin</div>
+            <div class="user-role">Super Admin</div>
+          </div>
+        </div>
+        <a href="#" id="logoutBtn" class="logout-link">Sign Out</a>
+      </div>
+    </aside>
+    <main class="main-content">
+      <div class="page-header"><h1>Backup & Restore</h1><p>Database backup management</p></div>
+      <div class="card">
+        <div class="card-title">Create Backup</div>
+        <p style="font-size:.85rem;color:var(--gray-500);margin-bottom:.75rem">Create a snapshot of the database.</p>
+        <button class="btn btn-primary" id="backupBtn">Create Backup Now</button>
+        <p id="backupMsg" style="display:none;margin-top:.75rem"></p>
+      </div>
+      <div class="card">
+        <div class="flex-between"><div class="card-title">All Backups</div><button class="btn btn-outline btn-sm" id="refreshBtn">Refresh</button></div>
+        <div id="backupList"><div class="empty-state"><p>Loading...</p></div></div>
+      </div>
+    </main>
+  </div>
+
+  <div id="pinModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h2>Enter PIN</h2>
+      <p class="modal-desc">PIN required for this action.</p>
+      <div class="form-group"><input type="password" class="form-control" id="modalPin" pattern="\d{4,8}" inputmode="numeric" maxlength="8" placeholder="Enter PIN" autocomplete="off"></div>
+      <p class="error" id="modalPinError"></p>
+      <div class="modal-actions">
+        <button class="btn btn-outline" id="modalPinCancel">Cancel</button>
+        <button class="btn btn-primary" id="modalPinConfirm">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { API } from './assets/js/api.js';
+    import { Auth } from './assets/js/auth.js';
+    if (!Auth.isAuthenticated() || !Auth.hasRole('super_admin')) location.href = 'index.html';
+    Auth.updateNav();
+    document.getElementById('logoutBtn').onclick = (e) => { e.preventDefault(); Auth.logout(); };
+
+    let pendingAction = null;
+    function showPinModal(cb) {
+      pendingAction = cb;
+      document.getElementById('modalPin').value = '';
+      document.getElementById('modalPinError').textContent = '';
+      document.getElementById('pinModal').classList.remove('hidden');
+      document.getElementById('modalPin').focus();
+      document.getElementById('modalPinConfirm').onclick = async () => {
+        const pin = document.getElementById('modalPin').value;
+        if (!pin) { document.getElementById('modalPinError').textContent = 'PIN required'; return; }
+        try { await API.post('/api/security/verify', { pin }); document.getElementById('pinModal').classList.add('hidden'); if (pendingAction) pendingAction(); }
+        catch (err) { document.getElementById('modalPinError').textContent = err.error || 'Invalid PIN'; }
+      };
+      document.getElementById('modalPinCancel').onclick = () => document.getElementById('pinModal').classList.add('hidden');
+    }
+
+    document.getElementById('backupBtn').onclick = () => showPinModal(async () => {
+      try {
+        const r = await API.post('/api/backup/backup');
+        document.getElementById('backupMsg').style.display = 'block';
+        document.getElementById('backupMsg').innerHTML = '<span style="color:var(--success)">Backup created: ' + esc(r.filename) + '</span>';
+        loadBackups();
+      } catch (err) { document.getElementById('backupMsg').style.display = 'block'; document.getElementById('backupMsg').innerHTML = '<span style="color:var(--danger)">' + (err.error || 'Failed') + '</span>'; }
+    });
+
+    document.getElementById('refreshBtn').onclick = loadBackups;
+
+    async function loadBackups() {
+      try {
+        const backups = await API.get('/api/backup/backups');
+        const el = document.getElementById('backupList');
+        if (backups.length === 0) { el.innerHTML = '<div class="empty-state"><p>No backups yet</p></div>'; return; }
+        el.innerHTML = `<div class="table-wrapper"><table><tr><th>Filename</th><th>Size</th><th>Created</th><th></th></tr>
+          ${backups.map(b => `<tr>
+            <td>${esc(b.filename)}</td>
+            <td>${fmtSize(b.size)}</td>
+            <td>${new Date(b.created).toLocaleString()}</td>
+            <td><button class="btn btn-danger btn-sm restore-btn" data-file="${esc(b.filename)}">Restore</button></td>
+          </tr>`).join('')}</table></div>`;
+        el.querySelectorAll('.restore-btn').forEach(btn => btn.onclick = () => {
+          showPinModal(async () => {
+            if (!confirm('Restore will overwrite current data. Continue?')) return;
+            try { await API.post('/api/backup/restore', { filename: btn.dataset.file }); API.toast('Database restored', 'success'); loadBackups(); }
+            catch (err) { API.toast(err.error || 'Restore failed', 'error'); }
+          });
+        });
+      } catch { document.getElementById('backupList').innerHTML = '<div class="empty-state"><p>Failed to load</p></div>'; }
+    }
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+    function fmtSize(bytes) { if (bytes < 1024) return bytes + ' B'; if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB'; return (bytes / 1048576).toFixed(1) + ' MB'; }
+    loadBackups();
+  </script>
+</body>
+</html>

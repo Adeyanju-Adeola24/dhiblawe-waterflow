@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payments — Dhiblawe WaterFlow</title>
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <a href="dashboard.html" class="logo">
+  <span class="logo-icon">💧</span>
+  <span>Dhiblawe</span> WaterFlow
+</a>
+      <nav>
+        <a href="dashboard.html">
+          <span class="nav-icon">📊</span>
+          Dashboard
+        </a>
+        <a href="trips.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">🚛</span>
+          Trip Entry
+        </a>
+        <a href="clients.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">👥</span>
+          Clients
+        </a>
+        <a href="plates.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">🚗</span>
+          Plate Numbers
+        </a>
+        <a href="payments.html" class="active" data-role="super_admin,data_entry">
+          <span class="nav-icon">💰</span>
+          Payments
+        </a>
+        <a href="deposits.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">🏦</span>
+          Deposits
+        </a>
+        <a href="reports.html">
+          <span class="nav-icon">📋</span>
+          Reports
+        </a>
+        <a href="users.html" data-role="super_admin">
+          <span class="nav-icon">🔐</span>
+          Users
+        </a>
+        <a href="settings.html" data-role="super_admin">
+          <span class="nav-icon">⚙️</span>
+          Settings
+        </a>
+        <a href="security.html" data-role="super_admin">
+          <span class="nav-icon">🛡️</span>
+          Security
+        </a>
+        <a href="backup.html" data-role="super_admin">
+          <span class="nav-icon">💾</span>
+          Backup
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar">A</div>
+          <div>
+            <div class="user-name">Admin</div>
+            <div class="user-role">Super Admin</div>
+          </div>
+        </div>
+        <a href="#" id="logoutBtn" class="logout-link">Sign Out</a>
+      </div>
+    </aside>
+    <main class="main-content">
+      <div class="page-header">
+        <div class="flex-between flex-wrap gap-1">
+          <div><h1>Payments</h1><p>Record client payments</p></div>
+          <button class="btn btn-primary" id="newPaymentBtn">+ Record Payment</button>
+        </div>
+      </div>
+
+      <div class="filters">
+        <div class="form-group"><label>Client</label><select class="form-control" id="filterClient"><option value="">All</option></select></div>
+        <div class="form-group"><label>From</label><input type="date" class="form-control" id="filterFrom"></div>
+        <div class="form-group"><label>To</label><input type="date" class="form-control" id="filterTo"></div>
+        <button class="btn btn-outline" id="filterBtn" style="align-self:end">Filter</button>
+      </div>
+
+      <div class="card">
+        <div class="table-wrapper" id="paymentsTable"><div class="empty-state"><p>Loading...</p></div></div>
+      </div>
+    </main>
+  </div>
+
+  <div id="paymentModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h2>Record Payment</h2>
+      <p class="modal-desc">Enter payment details.</p>
+      <form id="paymentForm">
+        <div class="form-group"><label>Client</label><select class="form-control" id="paymentClient" required><option value="">Select client</option></select></div>
+        <div class="form-group"><label>Date</label><input type="date" class="form-control" id="paymentDate" required></div>
+        <div class="form-group"><label>Amount (KSh)</label><input type="number" class="form-control" id="paymentAmount" step="0.01" min="0" required placeholder="0.00"></div>
+        <div class="form-group"><label>Note</label><input type="text" class="form-control" id="paymentNote" placeholder="Optional"></div>
+        <p class="error" id="paymentError"></p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" id="paymentCancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Payment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="pinModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h2>Enter PIN</h2>
+      <p class="modal-desc">PIN required for this action.</p>
+      <div class="form-group"><input type="password" class="form-control" id="modalPin" pattern="\d{4,8}" inputmode="numeric" maxlength="8" placeholder="Enter PIN" autocomplete="off"></div>
+      <p class="error" id="modalPinError"></p>
+      <div class="modal-actions">
+        <button class="btn btn-outline" id="modalPinCancel">Cancel</button>
+        <button class="btn btn-primary" id="modalPinConfirm">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { API } from './assets/js/api.js';
+    import { Auth } from './assets/js/auth.js';
+    if (!Auth.isAuthenticated()) location.href = 'index.html';
+    Auth.updateNav();
+    const isSuperAdmin = Auth.hasRole('super_admin');
+    document.getElementById('logoutBtn').onclick = (e) => { e.preventDefault(); Auth.logout(); };
+
+    let pendingDeleteId = null;
+
+    function showPinModal(cb) {
+      document.getElementById('modalPin').value = '';
+      document.getElementById('modalPinError').textContent = '';
+      document.getElementById('pinModal').classList.remove('hidden');
+      document.getElementById('modalPin').focus();
+      document.getElementById('modalPinConfirm').onclick = async () => {
+        const pin = document.getElementById('modalPin').value;
+        if (!pin) { document.getElementById('modalPinError').textContent = 'PIN required'; return; }
+        try { await API.post('/api/security/verify', { pin }); document.getElementById('pinModal').classList.add('hidden'); cb(); }
+        catch (err) { document.getElementById('modalPinError').textContent = err.error || 'Invalid PIN'; }
+      };
+      document.getElementById('modalPinCancel').onclick = () => document.getElementById('pinModal').classList.add('hidden');
+    }
+
+    async function loadClients() {
+      const clients = await API.get('/api/clients');
+      const html = '<option value="">Select client</option>' + clients.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+      document.getElementById('filterClient').innerHTML = '<option value="">All</option>' + clients.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+      document.getElementById('paymentClient').innerHTML = html;
+    }
+
+    document.getElementById('paymentCancel').onclick = () => document.getElementById('paymentModal').classList.add('hidden');
+
+    document.getElementById('paymentForm').onsubmit = async (e) => {
+      e.preventDefault();
+      try {
+        await API.post('/api/payments', {
+          client_id: parseInt(document.getElementById('paymentClient').value),
+          amount: parseFloat(document.getElementById('paymentAmount').value),
+          payment_date: document.getElementById('paymentDate').value,
+          note: document.getElementById('paymentNote').value || null,
+        });
+        API.toast('Payment recorded', 'success');
+        API.playSound();
+        document.getElementById('paymentModal').classList.add('hidden');
+        loadPayments();
+      } catch (err) { document.getElementById('paymentError').textContent = err.error || 'Failed'; }
+    };
+
+    document.getElementById('newPaymentBtn').onclick = () => {
+      document.getElementById('paymentError').textContent = '';
+      document.getElementById('paymentForm').reset();
+      document.getElementById('paymentDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('paymentModal').classList.remove('hidden');
+    };
+
+    document.getElementById('filterBtn').onclick = loadPayments;
+
+    async function loadPayments() {
+      const params = new URLSearchParams();
+      const c = document.getElementById('filterClient').value;
+      const f = document.getElementById('filterFrom').value;
+      const t = document.getElementById('filterTo').value;
+      if (c) params.set('client_id', c);
+      if (f) params.set('date_from', f);
+      if (t) params.set('date_to', t);
+      try {
+        const payments = await API.get('/api/payments?' + params.toString());
+        const el = document.getElementById('paymentsTable');
+        if (payments.length === 0) { el.innerHTML = '<div class="empty-state"><p>No payments recorded</p></div>'; return; }
+        el.innerHTML = `<table><tr><th>Date</th><th>Client</th><th>Amount</th><th>Note</th><th></th></tr>
+          ${payments.map(p => `<tr>
+            <td>${esc(p.payment_date)}</td>
+            <td>${esc(p.client_name)}</td>
+            <td style="font-weight:600;color:var(--success)">KSh ${Number(p.amount).toLocaleString()}</td>
+            <td>${esc(p.note || '—')}</td>
+            <td>${isSuperAdmin ? `<button class="btn btn-danger btn-sm delete-btn" data-id="${p.id}">Del</button>` : ''}</td>
+          </tr>`).join('')}</table>`;
+        el.querySelectorAll('.delete-btn').forEach(b => b.onclick = () => {
+          pendingDeleteId = b.dataset.id;
+          showPinModal(async () => {
+            try { await API.delete('/api/payments/' + pendingDeleteId); API.toast('Payment deleted', 'success'); loadPayments(); }
+            catch (err) { API.toast(err.error || 'Delete failed', 'error'); }
+          });
+        });
+      } catch { document.getElementById('paymentsTable').innerHTML = '<div class="empty-state"><p>Failed to load</p></div>'; }
+    }
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+    await loadClients();
+    loadPayments();
+  </script>
+</body>
+</html>
