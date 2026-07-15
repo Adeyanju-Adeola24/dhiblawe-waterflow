@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reports — Dhiblawe WaterFlow</title>
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <a href="dashboard.html" class="logo">
+  <span class="logo-icon">💧</span>
+  <span>Dhiblawe</span> WaterFlow
+</a>
+      <nav>
+        <a href="dashboard.html">
+          <span class="nav-icon">📊</span>
+          Dashboard
+        </a>
+        <a href="trips.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">🚛</span>
+          Trip Entry
+        </a>
+        <a href="clients.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">👥</span>
+          Clients
+        </a>
+        <a href="plates.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">🚗</span>
+          Plate Numbers
+        </a>
+        <a href="payments.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">💰</span>
+          Payments
+        </a>
+        <a href="deposits.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">🏦</span>
+          Deposits
+        </a>
+        <a href="reports.html" class="active">
+          <span class="nav-icon">📋</span>
+          Reports
+        </a>
+        <a href="users.html" data-role="super_admin">
+          <span class="nav-icon">🔐</span>
+          Users
+        </a>
+        <a href="settings.html" data-role="super_admin">
+          <span class="nav-icon">⚙️</span>
+          Settings
+        </a>
+        <a href="security.html" data-role="super_admin">
+          <span class="nav-icon">🛡️</span>
+          Security
+        </a>
+        <a href="backup.html" data-role="super_admin">
+          <span class="nav-icon">💾</span>
+          Backup
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar">A</div>
+          <div>
+            <div class="user-name">Admin</div>
+            <div class="user-role">Super Admin</div>
+          </div>
+        </div>
+        <a href="#" id="logoutBtn" class="logout-link">Sign Out</a>
+      </div>
+    </aside>
+    <main class="main-content">
+      <div class="page-header"><h1>Reports</h1><p>View and analyze trip data</p></div>
+
+      <div class="tabs" id="reportTabs">
+        <div class="tab active" data-tab="today">Today</div>
+        <div class="tab" data-tab="range">Date Range</div>
+        <div class="tab" data-tab="client">Client Statement</div>
+        <div class="tab" data-tab="plate">By Plate</div>
+        <div class="tab" data-tab="status">By Status</div>
+      </div>
+
+      <div id="todayTab" class="tab-content">
+        <div class="card"><div class="card-title">Today's Trips</div><div id="todayReport"><div class="empty-state"><p>Loading...</p></div></div></div>
+      </div>
+
+      <div id="rangeTab" class="tab-content hidden">
+        <div class="filters">
+          <div class="form-group"><label>From</label><input type="date" class="form-control" id="rangeFrom"></div>
+          <div class="form-group"><label>To</label><input type="date" class="form-control" id="rangeTo"></div>
+          <button class="btn btn-primary" id="rangeBtn" style="align-self:end">Generate</button>
+        </div>
+        <div class="card"><div class="card-title">Date Range Report</div><div id="rangeReport"><div class="empty-state"><p>Select dates and generate</p></div></div></div>
+      </div>
+
+      <div id="clientTab" class="tab-content hidden">
+        <div class="filters">
+          <div class="form-group"><label>Client</label><select class="form-control" id="stmtClient"><option value="">Select client</option></select></div>
+          <div class="form-group"><label>From</label><input type="date" class="form-control" id="stmtFrom"></div>
+          <div class="form-group"><label>To</label><input type="date" class="form-control" id="stmtTo"></div>
+          <button class="btn btn-primary" id="stmtBtn" style="align-self:end">View</button>
+          <a href="#" class="btn btn-outline" id="stmtPdfBtn" style="align-self:end" target="_blank">Download PDF</a>
+        </div>
+        <div class="card"><div class="card-title">Client Statement</div><div id="stmtReport"><div class="empty-state"><p>Select a client</p></div></div></div>
+      </div>
+
+      <div id="plateTab" class="tab-content hidden">
+        <div class="filters">
+          <div class="form-group"><label>Plate</label><select class="form-control" id="plateFilter"><option value="">All</option></select></div>
+          <div class="form-group"><label>From</label><input type="date" class="form-control" id="plateFrom"></div>
+          <div class="form-group"><label>To</label><input type="date" class="form-control" id="plateTo"></div>
+          <button class="btn btn-primary" id="plateBtn" style="align-self:end">Generate</button>
+        </div>
+        <div class="card"><div class="card-title">Plate Report</div><div id="plateReport"><div class="empty-state"><p>Select a plate</p></div></div></div>
+      </div>
+
+      <div id="statusTab" class="tab-content hidden">
+        <div class="filters">
+          <div class="form-group"><label>Status</label>
+            <select class="form-control" id="statusFilter"><option value="">All</option><option>Paid</option><option>Unpaid</option><option>Company Fleet</option><option>Free</option></select>
+          </div>
+          <div class="form-group"><label>From</label><input type="date" class="form-control" id="statusFrom"></div>
+          <div class="form-group"><label>To</label><input type="date" class="form-control" id="statusTo"></div>
+          <button class="btn btn-primary" id="statusBtn" style="align-self:end">Generate</button>
+        </div>
+        <div class="card"><div class="card-title">Payment Status Report</div><div id="statusReport"><div class="empty-state"><p>Select status</p></div></div></div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { API } from './assets/js/api.js';
+    import { Auth } from './assets/js/auth.js';
+    if (!Auth.isAuthenticated()) location.href = 'index.html';
+    Auth.updateNav();
+    document.getElementById('logoutBtn').onclick = (e) => { e.preventDefault(); Auth.logout(); };
+
+    const today = new Date().toISOString().split('T')[0];
+    const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+
+    async function loadSelects() {
+      const clients = await API.get('/api/clients?all=1');
+      const cHtml = '<option value="">Select client</option>' + clients.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+      document.getElementById('stmtClient').innerHTML = cHtml;
+      document.getElementById('stmtPdfBtn').onclick = (e) => {
+        const cid = document.getElementById('stmtClient').value;
+        if (!cid) { e.preventDefault(); API.toast('Select a client first', 'error'); return; }
+        const f = document.getElementById('stmtFrom').value;
+        const t = document.getElementById('stmtTo').value;
+        let url = `/api/pdf/client-statement?client_id=${cid}`;
+        if (f) url += `&from=${f}`;
+        if (t) url += `&to=${t}`;
+        document.getElementById('stmtPdfBtn').href = url;
+      };
+      const plates = await API.get('/api/plates?all=1');
+      document.getElementById('plateFilter').innerHTML = '<option value="">All</option>' + plates.map(p => `<option value="${p.id}">${esc(p.plate)}</option>`).join('');
+    }
+
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+    function renderTrips(trips, el) {
+      if (!trips || trips.length === 0) { el.innerHTML = '<div class="empty-state"><p>No trips found</p></div>'; return; }
+      const total = trips.reduce((s, t) => s + t.amount, 0);
+      el.innerHTML = `<p style="margin-bottom:.75rem;font-size:.85rem;color:var(--gray-500)">Total: <strong>KSh ${Number(total).toLocaleString()}</strong> | Trips: <strong>${trips.length}</strong></p>
+        <div class="table-wrapper"><table>
+        <tr><th>#</th><th>Date</th><th>Time</th><th>Client</th><th>Plate</th><th>Invoice</th><th>Item</th><th>Amount</th><th>Status</th><th>Note</th></tr>
+        ${trips.map(t => `<tr>
+          <td>${t.trip_number}</td>
+          <td>${esc(t.trip_date)}</td>
+          <td>${esc(t.trip_time)}</td>
+          <td>${esc(t.client_name)}</td>
+          <td>${esc(t.plate_number)}</td>
+          <td>${esc(t.invoice_number)}</td>
+          <td>${esc(t.item)}</td>
+          <td>KSh ${Number(t.amount).toLocaleString()}</td>
+          <td><span class="badge badge-${t.payment_status.replace(/\s+/g, '-')}">${esc(t.payment_status)}</span></td>
+          <td>${esc(t.note || '')}</td>
+        </tr>`).join('')}</table></div>`;
+    }
+
+    document.querySelectorAll('#reportTabs .tab').forEach(tab => {
+      tab.onclick = () => {
+        document.querySelectorAll('#reportTabs .tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(tc => tc.classList.add('hidden'));
+        document.getElementById(tab.dataset.tab + 'Tab').classList.remove('hidden');
+      };
+    });
+
+    async function loadToday() { try { renderTrips(await API.get('/api/reports/today'), document.getElementById('todayReport')); } catch {} }
+    document.getElementById('rangeBtn').onclick = async () => {
+      const f = document.getElementById('rangeFrom').value;
+      const t = document.getElementById('rangeTo').value;
+      if (!f || !t) { API.toast('Select from and to dates', 'error'); return; }
+      try { renderTrips(await API.get(`/api/reports/range?from=${f}&to=${t}`), document.getElementById('rangeReport')); } catch {}
+    };
+    document.getElementById('stmtBtn').onclick = async () => {
+      const cid = document.getElementById('stmtClient').value;
+      if (!cid) { API.toast('Select a client', 'error'); return; }
+      const f = document.getElementById('stmtFrom').value;
+      const t = document.getElementById('stmtTo').value;
+      let params = `client_id=${cid}`;
+      if (f) params += `&from=${f}`;
+      if (t) params += `&to=${t}`;
+      try {
+        const data = await API.get('/api/reports/client-statement?' + params);
+        const el = document.getElementById('stmtReport');
+        const s = data.summary;
+        el.innerHTML = `
+          <div style="margin-bottom:1rem"><strong>${esc(data.client.name)}</strong>${data.client.address ? ' — ' + esc(data.client.address) : ''}</div>
+          <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+            <div class="stat-card"><div class="label">Total Trips</div><div class="value">${s.totalTrips}</div></div>
+            <div class="stat-card"><div class="label">Total Deposit</div><div class="value">KSh ${Number(s.totalDeposit).toLocaleString()}</div></div>
+            <div class="stat-card"><div class="label">Deposit Used</div><div class="value">KSh ${Number(s.depositUsed).toLocaleString()}</div></div>
+            <div class="stat-card"><div class="label">Remaining Deposit</div><div class="value success">KSh ${Number(s.remainingDeposit).toLocaleString()}</div></div>
+            <div class="stat-card"><div class="label">Total Paid</div><div class="value success">KSh ${Number(s.totalPaid).toLocaleString()}</div></div>
+            <div class="stat-card"><div class="label">Outstanding</div><div class="value danger">KSh ${Number(s.outstandingBalance).toLocaleString()}</div></div>
+          </div>
+          ${data.plateSummary.length > 0 ? `<div style="margin-top:1rem"><strong>Trip Summary Per Plate</strong></div>
+            <div class="table-wrapper"><table><tr><th>Plate</th><th>Trips</th><th>Total</th></tr>
+            ${data.plateSummary.map(p => `<tr><td>${esc(p.plate)}</td><td>${p.trips}</td><td>KSh ${Number(p.total).toLocaleString()}</td></tr>`).join('')}</table></div>` : ''}
+          ${data.trips.length > 0 ? `<div style="margin-top:1rem"><strong>Transactions</strong></div>
+            <div class="table-wrapper"><table><tr><th>#</th><th>Date</th><th>Time</th><th>Plate</th><th>Invoice</th><th>Item</th><th>Amount</th><th>Status</th><th>Note</th></tr>
+            ${data.trips.map((t, i) => `<tr style="${t.payment_status === 'Paid' ? 'background:var(--success-light)' : t.payment_status === 'Unpaid' ? 'background:var(--warning-light)' : ''}">
+              <td>${i + 1}</td><td>${esc(t.trip_date)}</td><td>${esc(t.trip_time)}</td><td>${esc(t.plate_number)}</td>
+              <td>${esc(t.invoice_number)}</td><td>${esc(t.item)}</td>
+              <td>KSh ${Number(t.amount).toLocaleString()}</td>
+              <td><span class="badge badge-${t.payment_status.replace(/\s+/g, '-')}">${esc(t.payment_status)}</span></td>
+              <td>${esc(t.note || '')}</td>
+            </tr>`).join('')}</table></div>` : ''}`;
+      } catch {}
+    };
+    document.getElementById('plateBtn').onclick = async () => {
+      const p = document.getElementById('plateFilter').value;
+      const f = document.getElementById('plateFrom').value;
+      const t = document.getElementById('plateTo').value;
+      let params = '';
+      if (p) params += `&plate_id=${p}`;
+      if (f) params += `&from=${f}`;
+      if (t) params += `&to=${t}`;
+      try { renderTrips(await API.get('/api/reports/plate?' + params.slice(1)), document.getElementById('plateReport')); } catch {}
+    };
+    document.getElementById('statusBtn').onclick = async () => {
+      const s = document.getElementById('statusFilter').value;
+      const f = document.getElementById('statusFrom').value;
+      const t = document.getElementById('statusTo').value;
+      let params = '';
+      if (s) params += `&status=${s}`;
+      if (f) params += `&from=${f}`;
+      if (t) params += `&to=${t}`;
+      try { renderTrips(await API.get('/api/reports/payment-status?' + params.slice(1)), document.getElementById('statusReport')); } catch {}
+    };
+
+    document.getElementById('rangeFrom').value = firstOfMonth;
+    document.getElementById('rangeTo').value = today;
+    document.getElementById('stmtFrom').value = firstOfMonth;
+    document.getElementById('stmtTo').value = today;
+    document.getElementById('plateFrom').value = firstOfMonth;
+    document.getElementById('plateTo').value = today;
+    document.getElementById('statusFrom').value = firstOfMonth;
+    document.getElementById('statusTo').value = today;
+
+    await loadSelects();
+    loadToday();
+  </script>
+</body>
+</html>

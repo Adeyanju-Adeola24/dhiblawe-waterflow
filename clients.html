@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clients — Dhiblawe WaterFlow</title>
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <a href="dashboard.html" class="logo">
+  <span class="logo-icon">💧</span>
+  <span>Dhiblawe</span> WaterFlow
+</a>
+      <nav>
+        <a href="dashboard.html">
+          <span class="nav-icon">📊</span>
+          Dashboard
+        </a>
+        <a href="trips.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">🚛</span>
+          Trip Entry
+        </a>
+        <a href="clients.html" class="active" data-role="super_admin,data_entry">
+          <span class="nav-icon">👥</span>
+          Clients
+        </a>
+        <a href="plates.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">🚗</span>
+          Plate Numbers
+        </a>
+        <a href="payments.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">💰</span>
+          Payments
+        </a>
+        <a href="deposits.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">🏦</span>
+          Deposits
+        </a>
+        <a href="reports.html">
+          <span class="nav-icon">📋</span>
+          Reports
+        </a>
+        <a href="users.html" data-role="super_admin">
+          <span class="nav-icon">🔐</span>
+          Users
+        </a>
+        <a href="settings.html" data-role="super_admin">
+          <span class="nav-icon">⚙️</span>
+          Settings
+        </a>
+        <a href="security.html" data-role="super_admin">
+          <span class="nav-icon">🛡️</span>
+          Security
+        </a>
+        <a href="backup.html" data-role="super_admin">
+          <span class="nav-icon">💾</span>
+          Backup
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar">A</div>
+          <div>
+            <div class="user-name">Admin</div>
+            <div class="user-role">Super Admin</div>
+          </div>
+        </div>
+        <a href="#" id="logoutBtn" class="logout-link">Sign Out</a>
+      </div>
+    </aside>
+    <main class="main-content">
+      <div class="page-header">
+        <div class="flex-between flex-wrap gap-1">
+          <div><h1>Clients</h1><p>Manage water delivery clients</p></div>
+          <button class="btn btn-primary" id="newClientBtn">+ Add Client</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-wrapper" id="clientsTable"><div class="empty-state"><p>Loading...</p></div></div>
+      </div>
+    </main>
+  </div>
+
+  <div id="clientModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h2 id="modalTitle">Add Client</h2>
+      <p class="modal-desc">Enter client details.</p>
+      <form id="clientForm">
+        <input type="hidden" id="clientId">
+        <div class="form-group"><label>Client Name</label><input type="text" class="form-control" id="clientName" required maxlength="200"></div>
+        <div class="form-group"><label>Address</label><input type="text" class="form-control" id="clientAddress" maxlength="500"></div>
+        <div class="form-group" id="statusGroup" style="display:none"><label>Status</label>
+          <select class="form-control" id="clientStatus"><option value="1">Active</option><option value="0">Inactive</option></select>
+        </div>
+        <p class="error" id="clientError"></p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" id="clientCancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="pinModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h2>Enter PIN</h2>
+      <p class="modal-desc">PIN required for this action.</p>
+      <div class="form-group"><input type="password" class="form-control" id="modalPin" pattern="\d{4,8}" inputmode="numeric" maxlength="8" placeholder="Enter PIN" autocomplete="off"></div>
+      <p class="error" id="modalPinError"></p>
+      <div class="modal-actions">
+        <button class="btn btn-outline" id="modalPinCancel">Cancel</button>
+        <button class="btn btn-primary" id="modalPinConfirm">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { API } from './assets/js/api.js';
+    import { Auth } from './assets/js/auth.js';
+    if (!Auth.isAuthenticated()) location.href = 'index.html';
+    Auth.updateNav();
+    const isSuperAdmin = Auth.hasRole('super_admin');
+    if (!isSuperAdmin) document.getElementById('newClientBtn').style.display = 'none';
+    document.getElementById('logoutBtn').onclick = (e) => { e.preventDefault(); Auth.logout(); };
+
+    let pendingDeleteId = null;
+
+    function showPinModal(cb) {
+      document.getElementById('modalPin').value = '';
+      document.getElementById('modalPinError').textContent = '';
+      document.getElementById('pinModal').classList.remove('hidden');
+      document.getElementById('modalPin').focus();
+      document.getElementById('modalPinConfirm').onclick = async () => {
+        const pin = document.getElementById('modalPin').value;
+        if (!pin) { document.getElementById('modalPinError').textContent = 'PIN required'; return; }
+        try {
+          await API.post('/api/security/verify', { pin });
+          document.getElementById('pinModal').classList.add('hidden');
+          cb();
+        } catch (err) { document.getElementById('modalPinError').textContent = err.error || 'Invalid PIN'; }
+      };
+      document.getElementById('modalPinCancel').onclick = () => document.getElementById('pinModal').classList.add('hidden');
+    }
+
+    function showModal(client) {
+      document.getElementById('clientError').textContent = '';
+      document.getElementById('clientId').value = '';
+      document.getElementById('clientForm').reset();
+      document.getElementById('statusGroup').style.display = 'none';
+      if (client) {
+        document.getElementById('modalTitle').textContent = 'Edit Client';
+        document.getElementById('clientId').value = client.id;
+        document.getElementById('clientName').value = client.name;
+        document.getElementById('clientAddress').value = client.address || '';
+        document.getElementById('clientStatus').value = client.is_active;
+        if (isSuperAdmin) document.getElementById('statusGroup').style.display = 'block';
+      } else {
+        document.getElementById('modalTitle').textContent = 'Add Client';
+      }
+      document.getElementById('clientModal').classList.remove('hidden');
+    }
+
+    document.getElementById('clientCancel').onclick = () => document.getElementById('clientModal').classList.add('hidden');
+
+    document.getElementById('clientForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('clientId').value;
+      const body = { name: document.getElementById('clientName').value.trim(), address: document.getElementById('clientAddress').value.trim() || null };
+      if (id && isSuperAdmin) body.is_active = parseInt(document.getElementById('clientStatus').value);
+      try {
+        if (id) { await API.put('/api/clients/' + id, body); API.toast('Client updated', 'success'); }
+        else { await API.post('/api/clients', body); API.toast('Client added', 'success'); }
+        document.getElementById('clientModal').classList.add('hidden');
+        loadClients();
+      } catch (err) { document.getElementById('clientError').textContent = err.error || 'Failed'; }
+    };
+
+    document.getElementById('newClientBtn').onclick = () => showModal(null);
+
+    async function loadClients() {
+      try {
+        const clients = await API.get('/api/clients?all=1');
+        const el = document.getElementById('clientsTable');
+        el.innerHTML = `<table>
+          <tr><th>Name</th><th>Address</th><th>Balance</th><th>Status</th><th></th></tr>
+          ${clients.map(c => `<tr>
+            <td>${esc(c.name)}</td>
+            <td>${esc(c.address || '—')}</td>
+            <td class="${c.balance > 0 ? 'danger' : ''}" style="font-weight:${c.balance !== 0 ? '600' : '400'}">KSh ${Number(c.balance).toLocaleString()}</td>
+            <td><span class="badge badge-${c.is_active ? 'Active' : 'Inactive'}">${c.is_active ? 'Active' : 'Inactive'}</span></td>
+            <td>${isSuperAdmin ? `<div class="actions">
+              <button class="btn btn-outline btn-sm edit-btn" data-id="${c.id}">Edit</button>
+              <button class="btn btn-danger btn-sm delete-btn" data-id="${c.id}">Del</button>
+            </div>` : ''}</td>
+          </tr>`).join('')}
+        </table>`;
+        el.querySelectorAll('.edit-btn').forEach(b => b.onclick = async () => {
+          const c = await API.get('/api/clients/' + b.dataset.id);
+          showModal(c);
+        });
+        el.querySelectorAll('.delete-btn').forEach(b => b.onclick = () => {
+          pendingDeleteId = b.dataset.id;
+          showPinModal(async () => {
+            try { await API.delete('/api/clients/' + pendingDeleteId); API.toast('Client deleted', 'success'); loadClients(); }
+            catch (err) { API.toast(err.error || 'Delete failed', 'error'); }
+          });
+        });
+      } catch { document.getElementById('clientsTable').innerHTML = '<div class="empty-state"><p>Failed to load</p></div>'; }
+    }
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+    loadClients();
+  </script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dhiblawe WaterFlow — Login</title>
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+  <main class="auth-page">
+    <div class="auth-card">
+      <div class="brand">
+        <span class="icon">💧</span>
+        <h1><span>Dhiblawe</span> WaterFlow</h1>
+        <p>Operations System</p>
+      </div>
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" class="form-control" required placeholder="admin@dhiblawe.local">
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" class="form-control" required placeholder="Enter password">
+        </div>
+        <p class="error" id="errorMsg"></p>
+        <button type="submit" class="btn btn-primary btn-block btn-lg">Sign In</button>
+      </form>
+    </div>
+  </main>
+  <script type="module">
+    import { API } from './assets/js/api.js';
+    import { Auth } from './assets/js/auth.js';
+    if (Auth.isAuthenticated()) location.href = 'dashboard.html';
+    document.getElementById('loginForm').onsubmit = async (e) => {
+      e.preventDefault();
+      try {
+        const r = await API.post('/api/auth/login', {
+          email: document.getElementById('email').value,
+          password: document.getElementById('password').value,
+        });
+        Auth.setSession(r.token, r.user);
+        location.href = 'dashboard.html';
+      } catch (err) { document.getElementById('errorMsg').textContent = err.error || 'Login failed'; }
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Users — Dhiblawe WaterFlow</title>
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <a href="dashboard.html" class="logo">
+  <span class="logo-icon">💧</span>
+  <span>Dhiblawe</span> WaterFlow
+</a>
+      <nav>
+        <a href="dashboard.html">
+          <span class="nav-icon">📊</span>
+          Dashboard
+        </a>
+        <a href="trips.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">🚛</span>
+          Trip Entry
+        </a>
+        <a href="clients.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">👥</span>
+          Clients
+        </a>
+        <a href="plates.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">🚗</span>
+          Plate Numbers
+        </a>
+        <a href="payments.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">💰</span>
+          Payments
+        </a>
+        <a href="deposits.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">🏦</span>
+          Deposits
+        </a>
+        <a href="reports.html">
+          <span class="nav-icon">📋</span>
+          Reports
+        </a>
+        <a href="users.html" class="active" data-role="super_admin">
+          <span class="nav-icon">🔐</span>
+          Users
+        </a>
+        <a href="settings.html" data-role="super_admin">
+          <span class="nav-icon">⚙️</span>
+          Settings
+        </a>
+        <a href="security.html" data-role="super_admin">
+          <span class="nav-icon">🛡️</span>
+          Security
+        </a>
+        <a href="backup.html" data-role="super_admin">
+          <span class="nav-icon">💾</span>
+          Backup
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar">A</div>
+          <div>
+            <div class="user-name">Admin</div>
+            <div class="user-role">Super Admin</div>
+          </div>
+        </div>
+        <a href="#" id="logoutBtn" class="logout-link">Sign Out</a>
+      </div>
+    </aside>
+    <main class="main-content">
+      <div class="page-header">
+        <div class="flex-between flex-wrap gap-1">
+          <div><h1>Users</h1><p>Manage system users</p></div>
+          <button class="btn btn-primary" id="newUserBtn">+ Add User</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-wrapper" id="usersTable"><div class="empty-state"><p>Loading...</p></div></div>
+      </div>
+    </main>
+  </div>
+
+  <div id="userModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h2 id="modalTitle">Add User</h2>
+      <p class="modal-desc">Enter user details.</p>
+      <form id="userForm">
+        <input type="hidden" id="userId">
+        <div class="form-group"><label>Username</label><input type="text" class="form-control" id="userUsername" required maxlength="50"></div>
+        <div class="form-group"><label>Email</label><input type="email" class="form-control" id="userEmail" required></div>
+        <div class="form-group"><label>Password</label><input type="password" class="form-control" id="userPassword" placeholder="Leave blank to keep current (on edit)"></div>
+        <div class="form-group"><label>Role</label><select class="form-control" id="userRole"><option value="super_admin">Super Admin</option><option value="data_entry" selected>Data Entry</option><option value="view_only">View Only</option></select></div>
+        <div class="form-group" id="userStatusGroup" style="display:none"><label>Status</label><select class="form-control" id="userStatus"><option value="1">Active</option><option value="0">Inactive</option></select></div>
+        <p class="error" id="userError"></p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" id="userCancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+    import { API } from './assets/js/api.js';
+    import { Auth } from './assets/js/auth.js';
+    if (!Auth.isAuthenticated() || !Auth.hasRole('super_admin')) location.href = 'index.html';
+    Auth.updateNav();
+    document.getElementById('logoutBtn').onclick = (e) => { e.preventDefault(); Auth.logout(); };
+
+    function showModal(user) {
+      document.getElementById('userError').textContent = '';
+      document.getElementById('userId').value = '';
+      document.getElementById('userForm').reset();
+      document.getElementById('userPassword').placeholder = 'Leave blank to keep current';
+      document.getElementById('userStatusGroup').style.display = 'none';
+      if (user) {
+        document.getElementById('modalTitle').textContent = 'Edit User';
+        document.getElementById('userId').value = user.id;
+        document.getElementById('userUsername').value = user.username;
+        document.getElementById('userEmail').value = user.email;
+        document.getElementById('userRole').value = user.role;
+        document.getElementById('userStatus').value = user.is_active;
+        document.getElementById('userStatusGroup').style.display = 'block';
+      } else {
+        document.getElementById('modalTitle').textContent = 'Add User';
+        document.getElementById('userPassword').placeholder = 'Required for new user';
+        document.getElementById('userPassword').required = true;
+      }
+      document.getElementById('userModal').classList.remove('hidden');
+    }
+
+    document.getElementById('userCancel').onclick = () => document.getElementById('userModal').classList.add('hidden');
+    document.getElementById('newUserBtn').onclick = () => showModal(null);
+
+    document.getElementById('userForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('userId').value;
+      const body = {
+        username: document.getElementById('userUsername').value.trim(),
+        email: document.getElementById('userEmail').value.trim(),
+        role: document.getElementById('userRole').value,
+      };
+      const pw = document.getElementById('userPassword').value;
+      if (pw) body.password = pw;
+      if (id) body.is_active = parseInt(document.getElementById('userStatus').value);
+      try {
+        if (id) { await API.put('/api/auth/users/' + id, body); API.toast('User updated', 'success'); }
+        else { await API.post('/api/auth/users', body); API.toast('User added', 'success'); }
+        document.getElementById('userModal').classList.add('hidden');
+        loadUsers();
+      } catch (err) { document.getElementById('userError').textContent = err.error || 'Failed'; }
+    };
+
+    async function loadUsers() {
+      try {
+        const users = await API.get('/api/auth/users');
+        const el = document.getElementById('usersTable');
+        el.innerHTML = `<table><tr><th>Username</th><th>Email</th><th>Role</th><th>Status</th><th>Created</th><th></th></tr>
+          ${users.map(u => `<tr>
+            <td>${esc(u.username)}</td>
+            <td>${esc(u.email)}</td>
+            <td><span class="badge badge-${u.role}">${u.role.replace('_', ' ')}</span></td>
+            <td><span class="badge badge-${u.is_active ? 'Active' : 'Inactive'}">${u.is_active ? 'Active' : 'Inactive'}</span></td>
+            <td>${new Date(u.created_at).toLocaleDateString()}</td>
+            <td><div class="actions">
+              <button class="btn btn-outline btn-sm edit-btn" data-id="${u.id}">Edit</button>
+              <button class="btn btn-danger btn-sm delete-btn" data-id="${u.id}">Del</button>
+            </div></td>
+          </tr>`).join('')}</table>`;
+        el.querySelectorAll('.edit-btn').forEach(b => b.onclick = async () => {
+          const u = await API.get('/api/auth/users/' + b.dataset.id);
+          showModal(u);
+        });
+        el.querySelectorAll('.delete-btn').forEach(b => b.onclick = async () => {
+          if (!confirm('Delete this user?')) return;
+          try { await API.delete('/api/auth/users/' + b.dataset.id); API.toast('User deleted', 'success'); loadUsers(); }
+          catch (err) { API.toast(err.error || 'Delete failed', 'error'); }
+        });
+      } catch { document.getElementById('usersTable').innerHTML = '<div class="empty-state"><p>Failed to load</p></div>'; }
+    }
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+    loadUsers();
+  </script>
+</body>
+</html>

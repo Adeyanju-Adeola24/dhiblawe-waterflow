@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plate Numbers — Dhiblawe WaterFlow</title>
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <a href="dashboard.html" class="logo">
+  <span class="logo-icon">💧</span>
+  <span>Dhiblawe</span> WaterFlow
+</a>
+      <nav>
+        <a href="dashboard.html">
+          <span class="nav-icon">📊</span>
+          Dashboard
+        </a>
+        <a href="trips.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">🚛</span>
+          Trip Entry
+        </a>
+        <a href="clients.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">👥</span>
+          Clients
+        </a>
+        <a href="plates.html" class="active" data-role="super_admin,data_entry">
+          <span class="nav-icon">🚗</span>
+          Plate Numbers
+        </a>
+        <a href="payments.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">💰</span>
+          Payments
+        </a>
+        <a href="deposits.html" data-role="super_admin,data_entry">
+          <span class="nav-icon">🏦</span>
+          Deposits
+        </a>
+        <a href="reports.html">
+          <span class="nav-icon">📋</span>
+          Reports
+        </a>
+        <a href="users.html" data-role="super_admin">
+          <span class="nav-icon">🔐</span>
+          Users
+        </a>
+        <a href="settings.html" data-role="super_admin">
+          <span class="nav-icon">⚙️</span>
+          Settings
+        </a>
+        <a href="security.html" data-role="super_admin">
+          <span class="nav-icon">🛡️</span>
+          Security
+        </a>
+        <a href="backup.html" data-role="super_admin">
+          <span class="nav-icon">💾</span>
+          Backup
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar">A</div>
+          <div>
+            <div class="user-name">Admin</div>
+            <div class="user-role">Super Admin</div>
+          </div>
+        </div>
+        <a href="#" id="logoutBtn" class="logout-link">Sign Out</a>
+      </div>
+    </aside>
+    <main class="main-content">
+      <div class="page-header">
+        <div class="flex-between flex-wrap gap-1">
+          <div><h1>Plate Numbers</h1><p>Manage fleet plate numbers and rates</p></div>
+          <button class="btn btn-primary" id="newPlateBtn">+ Add Plate</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-wrapper" id="platesTable"><div class="empty-state"><p>Loading...</p></div></div>
+      </div>
+    </main>
+  </div>
+
+  <div id="plateModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h2 id="modalTitle">Add Plate</h2>
+      <p class="modal-desc">Enter plate number details.</p>
+      <form id="plateForm">
+        <input type="hidden" id="plateId">
+        <div class="form-group"><label>Plate Number</label><input type="text" class="form-control" id="platePlate" required maxlength="20" placeholder="e.g. KCA 001T" style="text-transform:uppercase"></div>
+        <div class="form-group"><label>Default Rate (KSh)</label><input type="number" class="form-control" id="plateRate" step="0.01" min="0" placeholder="0.00"></div>
+        <div class="form-group" id="plateStatusGroup" style="display:none"><label>Status</label>
+          <select class="form-control" id="plateStatus"><option value="1">Active</option><option value="0">Inactive</option></select>
+        </div>
+        <p class="error" id="plateError"></p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" id="plateCancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="pinModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h2>Enter PIN</h2>
+      <p class="modal-desc">PIN required for this action.</p>
+      <div class="form-group"><input type="password" class="form-control" id="modalPin" pattern="\d{4,8}" inputmode="numeric" maxlength="8" placeholder="Enter PIN" autocomplete="off"></div>
+      <p class="error" id="modalPinError"></p>
+      <div class="modal-actions">
+        <button class="btn btn-outline" id="modalPinCancel">Cancel</button>
+        <button class="btn btn-primary" id="modalPinConfirm">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { API } from './assets/js/api.js';
+    import { Auth } from './assets/js/auth.js';
+    if (!Auth.isAuthenticated()) location.href = 'index.html';
+    Auth.updateNav();
+    const isSuperAdmin = Auth.hasRole('super_admin');
+    if (!isSuperAdmin) document.getElementById('newPlateBtn').style.display = 'none';
+    document.getElementById('logoutBtn').onclick = (e) => { e.preventDefault(); Auth.logout(); };
+
+    let pendingDeleteId = null;
+
+    function showPinModal(cb) {
+      document.getElementById('modalPin').value = '';
+      document.getElementById('modalPinError').textContent = '';
+      document.getElementById('pinModal').classList.remove('hidden');
+      document.getElementById('modalPin').focus();
+      document.getElementById('modalPinConfirm').onclick = async () => {
+        const pin = document.getElementById('modalPin').value;
+        if (!pin) { document.getElementById('modalPinError').textContent = 'PIN required'; return; }
+        try {
+          await API.post('/api/security/verify', { pin });
+          document.getElementById('pinModal').classList.add('hidden');
+          cb();
+        } catch (err) { document.getElementById('modalPinError').textContent = err.error || 'Invalid PIN'; }
+      };
+      document.getElementById('modalPinCancel').onclick = () => document.getElementById('pinModal').classList.add('hidden');
+    }
+
+    function showModal(plate) {
+      document.getElementById('plateError').textContent = '';
+      document.getElementById('plateId').value = '';
+      document.getElementById('plateForm').reset();
+      document.getElementById('plateStatusGroup').style.display = 'none';
+      if (plate) {
+        document.getElementById('modalTitle').textContent = 'Edit Plate';
+        document.getElementById('plateId').value = plate.id;
+        document.getElementById('platePlate').value = plate.plate;
+        document.getElementById('plateRate').value = plate.default_rate;
+        document.getElementById('plateStatus').value = plate.is_active;
+        if (isSuperAdmin) document.getElementById('plateStatusGroup').style.display = 'block';
+      } else {
+        document.getElementById('modalTitle').textContent = 'Add Plate';
+      }
+      document.getElementById('plateModal').classList.remove('hidden');
+    }
+
+    document.getElementById('plateCancel').onclick = () => document.getElementById('plateModal').classList.add('hidden');
+
+    document.getElementById('plateForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('plateId').value;
+      const body = { plate: document.getElementById('platePlate').value.trim(), default_rate: parseFloat(document.getElementById('plateRate').value) || 0 };
+      if (id && isSuperAdmin) body.is_active = parseInt(document.getElementById('plateStatus').value);
+      try {
+        if (id) { await API.put('/api/plates/' + id, body); API.toast('Plate updated', 'success'); }
+        else { await API.post('/api/plates', body); API.toast('Plate added', 'success'); }
+        document.getElementById('plateModal').classList.add('hidden');
+        loadPlates();
+      } catch (err) { document.getElementById('plateError').textContent = err.error || 'Failed'; }
+    };
+
+    document.getElementById('newPlateBtn').onclick = () => showModal(null);
+
+    async function loadPlates() {
+      try {
+        const plates = await API.get('/api/plates?all=1');
+        const el = document.getElementById('platesTable');
+        el.innerHTML = `<table>
+          <tr><th>Plate Number</th><th>Default Rate</th><th>Status</th><th></th></tr>
+          ${plates.map(p => `<tr>
+            <td style="font-weight:600">${esc(p.plate)}</td>
+            <td>KSh ${Number(p.default_rate).toLocaleString()}</td>
+            <td><span class="badge badge-${p.is_active ? 'Active' : 'Inactive'}">${p.is_active ? 'Active' : 'Inactive'}</span></td>
+            <td>${isSuperAdmin ? `<div class="actions">
+              <button class="btn btn-outline btn-sm edit-btn" data-id="${p.id}">Edit</button>
+              <button class="btn btn-danger btn-sm delete-btn" data-id="${p.id}">Del</button>
+            </div>` : ''}</td>
+          </tr>`).join('')}
+        </table>`;
+        el.querySelectorAll('.edit-btn').forEach(b => b.onclick = async () => {
+          const p = await API.get('/api/plates/' + b.dataset.id);
+          showModal(p);
+        });
+        el.querySelectorAll('.delete-btn').forEach(b => b.onclick = () => {
+          pendingDeleteId = b.dataset.id;
+          showPinModal(async () => {
+            try { await API.delete('/api/plates/' + pendingDeleteId); API.toast('Plate deleted', 'success'); loadPlates(); }
+            catch (err) { API.toast(err.error || 'Delete failed', 'error'); }
+          });
+        });
+      } catch { document.getElementById('platesTable').innerHTML = '<div class="empty-state"><p>Failed to load</p></div>'; }
+    }
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+    loadPlates();
+  </script>
+</body>
+</html>
