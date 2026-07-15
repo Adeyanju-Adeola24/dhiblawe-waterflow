@@ -1,0 +1,12 @@
+[build]
+  command = "echo 'window.API_BASE = \"'\"$API_BASE\"'\";' > assets/js/env.js"
+  publish = "."
+
+[build.environment]
+  API_BASE = "http://localhost:3003"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"

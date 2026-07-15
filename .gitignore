@@ -6,3 +6,5 @@ uploads/*
 !uploads/.gitkeep
 *.sqlite
 *.db
+server/data/
+
