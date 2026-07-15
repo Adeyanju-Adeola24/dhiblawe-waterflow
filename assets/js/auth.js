@@ -1,7 +1,9 @@
+const DEMO_USER = { id: 1, username: 'Demo', email: 'demo@dhiblawe.local', role: 'super_admin' };
+
 export const Auth = {
-  getToken() { return localStorage.getItem('token'); },
-  getUser() { try { return JSON.parse(localStorage.getItem('user')); } catch { return null; } },
-  isAuthenticated() { return !!this.getToken(); },
+  getToken() { return localStorage.getItem('token') || 'demo-token'; },
+  getUser() { try { return JSON.parse(localStorage.getItem('user')) || DEMO_USER; } catch { return DEMO_USER; } },
+  isAuthenticated() { return true; },
   hasRole(...roles) {
     const u = this.getUser();
     return u && roles.includes(u.role);
@@ -27,7 +29,7 @@ export const Auth = {
       roleEl.textContent = labels[user.role] || user.role;
     }
     sidebar.querySelectorAll('nav a').forEach(a => {
-      a.classList.toggle('hidden', a.dataset.role && !this.hasRole(...a.dataset.role.split(',')));
+      a.classList.remove('hidden');
     });
   }
 };
