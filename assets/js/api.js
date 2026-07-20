@@ -26,7 +26,7 @@ function toast(msg, type = 'success') {
 
 function playSound() {
   try {
-    const s = new Audio('/sounds/success.wav');
+    const s = new Audio(`${BASE}/sounds/success.wav`);
     s.volume = 0.3;
     s.play();
   } catch {}
