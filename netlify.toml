@@ -1,8 +1,18 @@
 [build]
+  command = "cd server && npm install"
   publish = "."
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
 
 [[headers]]
   for = "/*"
   [headers.values]
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"

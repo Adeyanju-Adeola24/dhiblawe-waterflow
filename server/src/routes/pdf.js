@@ -6,21 +6,21 @@ import { auth, requireRole } from '../middleware/auth.js';
 
 const router = Router();
 
-function loadSettings() {
-  const rows = queryAll('SELECT key, value FROM settings');
+async function loadSettings() {
+  const rows = await queryAll('SELECT key, value FROM settings');
   const s = {};
   for (const r of rows) s[r.key] = r.value;
   return s;
 }
 
-router.get('/client-statement', auth, requireRole('super_admin', 'data_entry', 'view_only'), (req, res) => {
+router.get('/client-statement', auth, requireRole('super_admin', 'data_entry', 'view_only'), async (req, res) => {
   const { client_id, from, to } = req.query;
   if (!client_id) return res.status(400).json({ error: 'client_id required' });
 
-  const client = queryOne('SELECT * FROM clients WHERE id = ?', [client_id]);
+  const client = await queryOne('SELECT * FROM clients WHERE id = ?', [client_id]);
   if (!client) return res.status(404).json({ error: 'Client not found' });
 
-  const settings = loadSettings();
+  const settings = await loadSettings();
   const doc = new PDFDocument({ margin: 40, size: 'A4' });
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="statement-${client.name.replace(/\s+/g, '-')}.pdf"`);
@@ -54,24 +54,24 @@ router.get('/client-statement', auth, requireRole('super_admin', 'data_entry', '
   if (from) { tripSql += ' AND t.trip_date >= ?'; params.push(from); }
   if (to) { tripSql += ' AND t.trip_date <= ?'; params.push(to); }
   tripSql += ' ORDER BY t.trip_date ASC, t.trip_time ASC';
-  const trips = queryAll(tripSql, params);
+  const trips = await queryAll(tripSql, params);
 
   let pmtSql = 'SELECT * FROM payments WHERE client_id = ?';
   const pmtParams = [client_id];
   if (from) { pmtSql += ' AND payment_date >= ?'; pmtParams.push(from); }
   if (to) { pmtSql += ' AND payment_date <= ?'; pmtParams.push(to); }
   pmtSql += ' ORDER BY created_at ASC';
-  const payments = queryAll(pmtSql, pmtParams);
+  const payments = await queryAll(pmtSql, pmtParams);
 
   let depSql = 'SELECT * FROM deposits WHERE client_id = ?';
   const depParams = [client_id];
   if (from) { depSql += ' AND deposit_date >= ?'; depParams.push(from); }
   if (to) { depSql += ' AND deposit_date <= ?'; depParams.push(to); }
   depSql += ' ORDER BY created_at ASC';
-  const deposits = queryAll(depSql, depParams);
+  const deposits = await queryAll(depSql, depParams);
 
   const totalDeposits = deposits.reduce((s, d) => s + d.amount, 0);
-  const depositsRemaining = queryOne('SELECT COALESCE(SUM(remaining), 0) as total FROM deposits WHERE client_id = ?', [client_id])?.total || 0;
+  const depositsRemaining = (await queryOne('SELECT COALESCE(SUM(remaining), 0) as total FROM deposits WHERE client_id = ?', [client_id]))?.total || 0;
   const depositUsed = totalDeposits - depositsRemaining;
   const totalPaid = payments.reduce((s, p) => s + p.amount, 0) + trips.filter(t => t.payment_status === 'Paid').reduce((s, t) => s + t.amount, 0);
   const outstanding = trips.filter(t => t.payment_status === 'Unpaid' || t.payment_status === 'Outstanding').reduce((s, t) => s + (t.amount - t.deposit_used), 0);
