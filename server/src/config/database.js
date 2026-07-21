@@ -24,9 +24,9 @@ export async function initDb() {
 }
 
 async function refreshCache() {
-  for (const t of ['users', 'clients', 'plate_numbers', 'trips', 'payments', 'deposits', 'settings']) {
-    cache[t] = await getAllRows(t);
-  }
+  const tables = ['users', 'clients', 'plate_numbers', 'trips', 'payments', 'deposits', 'settings'];
+  const results = await Promise.all(tables.map(t => getAllRows(t)));
+  tables.forEach((t, i) => { cache[t] = results[i]; });
 }
 
 function evalExpr(expr, row) {

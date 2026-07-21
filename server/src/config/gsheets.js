@@ -97,26 +97,20 @@ export async function getSheetId(sheetName) {
 
 export async function ensureSheet(name, headers) {
   const sheets = await getClient();
-  const spreadsheet = await sheets.spreadsheets.get({
+  await sheets.spreadsheets.batchUpdate({
     spreadsheetId: SPREADSHEET_ID,
+    resource: {
+      requests: [{
+        addSheet: { properties: { title: name } },
+      }],
+    },
   });
-  const exists = spreadsheet.data.sheets.some(s => s.properties.title === name);
-  if (!exists) {
-    await sheets.spreadsheets.batchUpdate({
-      spreadsheetId: SPREADSHEET_ID,
-      resource: {
-        requests: [{
-          addSheet: { properties: { title: name } },
-        }],
-      },
-    });
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${name}!A1`,
-      valueInputOption: 'USER_ENTERED',
-      resource: { values: [headers] },
-    });
-  }
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${name}!A1`,
+    valueInputOption: 'USER_ENTERED',
+    resource: { values: [headers] },
+  });
 }
 
 export async function initSheets() {
@@ -130,7 +124,11 @@ export async function initSheets() {
     settings: ['id', 'key', 'value', 'updated_at'],
     audit_log: ['id', 'user_id', 'action', 'details', 'created_at'],
   };
+  const sheets = await getClient();
+  const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
+  const existing = new Set(spreadsheet.data.sheets.map(s => s.properties.title));
   for (const [name, headers] of Object.entries(tabs)) {
+    if (existing.has(name)) continue;
     await ensureSheet(name, headers);
   }
 }
