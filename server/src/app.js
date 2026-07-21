@@ -17,7 +17,12 @@ import backupRoutes from './routes/backup.js';
 import reportRoutes from './routes/reports.js';
 import pdfRoutes from './routes/pdf.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+let __dirname;
+try {
+  __dirname = path.dirname(fileURLToPath(import.meta.url));
+} catch {
+  __dirname = process.cwd();
+}
 const app = express();
 
 app.use(helmet({ contentSecurityPolicy: false }));
