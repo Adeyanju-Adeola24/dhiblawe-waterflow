@@ -78,7 +78,7 @@ router.get('/client-statement', auth, requireRole('super_admin', 'data_entry', '
 
   const summaryY = doc.y;
   doc.fontSize(10).font('Helvetica-Bold').fillColor('#000').text('Summary', 40, summaryY);
-  const sy = doc.y + 5;
+  let sy = doc.y + 5;
   const summaryItems = [
     ['Total Trips:', String(trips.length)],
     ['Total Deposit:', totalDeposits.toFixed(2)],
